@@ -39,7 +39,7 @@ export default {
   methods: {
     initVolume() {
       setInterval(() => {
-        this.volume += Math.round(Math.random()) ? 10 : -20;
+        this.volume += Math.round(Math.random()) ? 10 : -10;
       }, 1500);
     }
   }
