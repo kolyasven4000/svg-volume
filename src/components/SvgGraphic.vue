@@ -1,8 +1,8 @@
 <template>
   <div class="graphic">
-    <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+    <svg height="100%" xmlns="http://www.w3.org/2000/svg">
       <path
-        v-for="({ barPath, fillColor }, i) in barArr"
+        v-for="({ barPath, fillColor, barChangedPoint }, i) in barArr"
         :key="i"
         :d="barPath"
         :fill="fillColor"
@@ -18,7 +18,7 @@ class Path {
   constructor(x, y) {
     this.left = x;
     this.top = y;
-    this.width = 6;
+    this.width = 8;
     this.volumeValue = 0;
     this.volumeTickArr = [];
     this.tailLeft = this.left + this.width / 2;
@@ -28,34 +28,44 @@ class Path {
     return `M ${left} ${top}
               L ${left} ${this.barChangedPoint}
               L ${left + this.width} ${this.barChangedPoint}
-              L ${left + this.width} ${top} Z ${this.barTopTailPath}`;
+              L ${left + this.width} ${top} Z ${this.barTopTailPath} ${
+      this.barBottomTailPath
+    }`;
   }
   get barTopTailPath() {
-    if (this.maxVolume > this.volumeValue) {
-      return `M ${this.tailLeft} ${this.barChangedPoint}
-              L ${this.tailLeft} ${this.barChangedPoint + this.maxVolume}
-              L ${this.tailLeft + this.width} ${this.barChangedPoint +
-        this.maxVolume}
-              L ${this.tailLeft + this.width} ${this.barChangedPoint} Z`;
-    } else {
-      return "";
-    }
+    const topTail = this.top - this.maxVolume;
+    const boundTail = Math.min(this.top, this.barChangedPoint);
+    return this.getBarTailTemplate(boundTail, topTail);
+  }
+  get barBottomTailPath() {
+    const botTail = this.top - this.minVolume;
+    const boundTail = Math.max(this.top, this.barChangedPoint);
+    return this.getBarTailTemplate(boundTail, botTail);
+  }
+  get isPositiveBar() {
+    return this.volumeValue >= 0;
   }
   get pathState() {
     const { left, top, barPath, volumeValue } = this;
     return { left, top, barPath, volumeValue };
   }
   get fillColor() {
-    return this.volumeValue > 0 ? "green" : "red";
+    return this.isPositiveBar ? "green" : "red";
   }
   get barChangedPoint() {
     return this.top - this.volumeValue;
   }
   get maxVolume() {
-    return Math.max(...this.volumeTickArr);
+    return Math.max(0, ...this.volumeTickArr);
   }
   get minVolume() {
-    return Math.min(...this.volumeTickArr);
+    return Math.min(0, ...this.volumeTickArr);
+  }
+  getBarTailTemplate(boundCoord, extremumCoord) {
+    return `M ${this.tailLeft} ${boundCoord}
+              L ${this.tailLeft} ${extremumCoord}
+              L ${this.tailLeft} ${extremumCoord}
+              L ${this.tailLeft} ${boundCoord} Z`;
   }
   setBarVolume(volume) {
     this.volumeTickArr.push(volume);
@@ -68,7 +78,7 @@ export default {
     return {
       tick: {
         step: 1000,
-        timeFrame: 5000,
+        timeFrame: 500000,
         filled: 0
       },
       volume: 0,
@@ -99,10 +109,15 @@ export default {
   methods: {
     initVolume() {
       this.createBar();
+      const arr = [-5, 5, 5, -5, -5, 5, 5, -10, 100];
+      let i = 0;
       setInterval(() => {
-        this.volume += Math.round(Math.random()) ? 5 : -5;
-        this.currentBar.setBarVolume(this.volume);
-        this.checkTickFilled();
+        if (i < arr.length) {
+          this.volume += arr[i]; //Math.round(Math.random()) ? 5 : -5;
+          this.currentBar.setBarVolume(this.volume);
+          this.checkTickFilled();
+          i++;
+        }
       }, this.tick.step);
     },
     checkTickFilled() {
@@ -130,8 +145,9 @@ export default {
 <style scoped lang="scss">
 .graphic {
   height: 100%;
+  width: 50%;
 }
 svg path {
-  transition: 0.3s;
+  transition: 0.1s;
 }
 </style>
