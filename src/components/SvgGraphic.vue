@@ -1,6 +1,11 @@
 <template>
   <div class="graphic">
-    <svg height="100%" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      height="100%"
+      width="100px"
+      xmlns="http://www.w3.org/2000/svg"
+      ref="graphic"
+    >
       <!-- <BarPath
         :left='left'
         :top='top'
@@ -29,23 +34,26 @@ export default {
   data() {
     return {
       tick: {
-        step: 1000,
-        timeFrame: 5000,
+        step: 500,
+        timeFrame: 2000,
         filled: 0
       },
       volume: 0,
-      bar: null,
       barConfig: {
-        left: 3,
-        top: 146
+        left: 0,
+        top: 146,
+        width: 10
       },
+      maxBarAmount: 0,
       barShift: 10,
-      width: 4,
       barArr: []
     };
   },
   created() {
     this.initVolume();
+  },
+  mounted() {
+    this.calculateGraphicBarAmount();
   },
   computed: {
     currentBar() {
@@ -53,6 +61,12 @@ export default {
     },
     isFirstBar() {
       return !this.barArr.length;
+    },
+    isMaxBarAmountReached() {
+      return this.maxBarAmount < this.barArr.length;
+    },
+    barShiftValue() {
+      return this.barConfig.width + this.barShift
     }
   },
   methods: {
@@ -64,23 +78,35 @@ export default {
         this.checkTickFilled();
       }, this.tick.step);
     },
+    calculateGraphicBarAmount() {
+      const graphicWidth = this.$refs.graphic.clientWidth;
+      this.maxBarAmount = graphicWidth / this.barShiftValue;
+    },
     checkTickFilled() {
       if (this.tick.filled === this.tick.timeFrame) {
         this.tick.filled = 0;
         this.volume = 0;
         this.createBar();
+        this.checkMaxBarAmount();
       } else {
         this.tick.filled += this.tick.step;
       }
     },
+    checkMaxBarAmount() {
+      if (this.isMaxBarAmountReached) this.recalculateBarsShift();
+    },
     createBar() {
-      const { left, top } = this.barConfig;
+      const { left, top, width } = this.barConfig;
       const leftShift = this.isFirstBar
         ? left
-        : this.currentBar.left + this.barShift;
+        : this.currentBar.left + width + this.barShift;
       const topShift = this.isFirstBar ? top : this.currentBar.barChangedPoint;
-      const bar = new Path(leftShift, topShift);
-      this.barArr.push(bar);
+      this.barArr.push(new Path(leftShift, topShift, width));
+    },
+    recalculateBarsShift() {
+      this.barArr.forEach(bar =>
+        bar.recalculateBarShift(this.barShiftValue)
+      );
     }
   }
 };
@@ -88,8 +114,11 @@ export default {
 
 <style scoped lang="scss">
 .graphic {
-  height: 100%;
-  width: 50%;
+  height: 30vh;
+  width: 100%;
+}
+svg {
+  border: 1px solid;
 }
 svg path {
   transition: 0.1s;

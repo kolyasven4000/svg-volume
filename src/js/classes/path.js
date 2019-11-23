@@ -1,11 +1,10 @@
 const path = class Path {
-  constructor(x, y) {
+  constructor(x, y, width) {
     this.left = x;
     this.top = y;
-    this.width = 8;
+    this.width = width;
     this.barVolume = 0;
     this.volumeTickArr = [];
-    this.tailLeft = this.left + this.width / 2;
   }
   get barPath() {
     const { left, top } = this;
@@ -45,6 +44,9 @@ const path = class Path {
   get minVolume() {
     return Math.min(0, ...this.volumeTickArr);
   }
+  get tailLeft() {
+    return this.left + this.width / 2;
+  }
   getBarTailTemplate(boundCoord, extremumCoord) {
     return `M ${this.tailLeft} ${boundCoord}
               L ${this.tailLeft} ${extremumCoord}
@@ -54,6 +56,9 @@ const path = class Path {
   setBarVolume(volume) {
     this.volumeTickArr.push(volume);
     this.barVolume = volume;
+  }
+  recalculateBarShift(leftShift) {
+    this.left -= leftShift;
   }
 };
 export default path;
