@@ -17,19 +17,19 @@
         :closingPrice="closingPrice"
       />
       <g
-        v-for="({ x1, y1, x2, y2, price }, i) in horizontalLinesCoords"
-        :key="i"
+        v-for="({ coords: { x1, x2, y }, price }, i) in horizontalLinesCoords"
+        :key="`xAxis${i}`"
       >
         <line
           :x1="x1"
-          :y1="y1"
+          :y1="y"
           :x2="x2"
-          :y2="y2"
-          stroke="rgba(0,0,0,.2)"
+          :y2="y"
+          stroke="rgba(0,0,0)"
           stroke-dasharray="2"
           stroke-width="1"
         ></line>
-        <text :x="x2 - 30" :y="y2">{{ price }}</text>
+        <text :x="x2 - 30" :y="y">{{ price }}</text>
       </g>
       <!-- <path
         v-for="({ barPath, fillColor }, i) in barArr"
@@ -86,7 +86,7 @@ export default {
     };
   },
   created() {
-    // this.initVolume();
+    this.initBarArrCoords();
   },
   mounted() {
     this.calculateGraphicBarAmount();
@@ -111,32 +111,70 @@ export default {
         max: Math.max(...this.barArr.map(e => e.maxPrice))
       };
     },
+    horizontalLinesMargin() {
+      return this.graphicHeight / (this.horizontalLinesValue - 1);
+    },
     horizontalLinesCoords() {
-      //-2 для отрисовки первой и последней оси внутри области свг
-      const linesMargin =
-        (this.graphicHeight - 2) / (this.horizontalLinesValue - 1);
       return new Array(this.horizontalLinesValue).fill(null).map((e, i) => {
-        const topMargin = i * linesMargin + 1;
+        const topMargin = i * this.horizontalLinesMargin;
         return {
-          x1: 0,
-          y1: topMargin,
-          x2: this.graphicWidth,
-          y2: topMargin,
+          coords: {
+            x1: 0,
+            y: topMargin,
+            x2: this.graphicWidth
+          },
           price: this.priceStepValues[i]
         };
       });
     },
-    priceStepValues() {
+    priceStep() {
       const { min, max } = this.priceExtremumValues;
       //подсчет шага с учетом добавления доп отметок к текущим экстремумам
-      const step = (max - min) / (this.horizontalLinesValue - 3);
-      const maxPrice = max + step;
+      return (max - min) / (this.horizontalLinesValue - 3);
+    },
+    priceStepValues() {
+      const { max } = this.priceExtremumValues;
+
+      const maxPrice = max + this.priceStep;
       return new Array(this.horizontalLinesValue).fill(null).map((e, i) => {
-        return maxPrice - step * i;
+        return maxPrice - this.priceStep * i;
       });
     }
   },
   methods: {
+    getClosestPriceObj(value) {
+      const closestPriceObj = this.horizontalLinesCoords.reduce((prev, cur) => {
+        return value <= prev.price && value > cur.price ? prev : cur;
+      });
+      const closestPriceDifference = closestPriceObj.price - value;
+      // если цена соответствует х осям графика, то возвращаем
+      if (closestPriceDifference === 0) {
+        return closestPriceObj.coords;
+      } else {
+        const priceCoefficient = closestPriceDifference / this.priceStep;
+        const { y } = closestPriceObj;
+        return {
+          ...closestPriceObj.coords,
+          y: y + this.horizontalLinesMargin * priceCoefficient
+        };
+      }
+    },
+    initBarArrCoords() {
+      //НУЖНО подсчитать координату на графике по значению цены
+      var x = this.barArr.map(e => {
+        const { minPrice, maxPrice, openingPrice, closingPrice } = e;
+        return {
+          ...e,
+          coords: {
+            minPrice: this.getClosestPriceObj(minPrice),
+            maxPrice: this.getClosestPriceObj(maxPrice),
+            openingPrice: this.getClosestPriceObj(openingPrice),
+            closingPrice: this.getClosestPriceObj(closingPrice)
+          }
+        };
+      });
+      console.log(x);
+    },
     initVolume() {
       this.createBar();
       setInterval(() => {
@@ -184,6 +222,7 @@ export default {
 }
 svg {
   margin-top: 15px;
+  border: 1px solid red;
 }
 svg path {
   transition: 0.1s;
