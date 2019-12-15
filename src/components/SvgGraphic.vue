@@ -1,38 +1,61 @@
 <template>
   <div class="graphic">
     <svg
-      height="100%"
-      width="100px"
+      :height="graphicHeight"
+      :width="graphicWidth"
       xmlns="http://www.w3.org/2000/svg"
       ref="graphic"
     >
-      <!-- <BarPath
-        :left='left'
-        :top='top'
-        :width='width'
-        :barVolume='barVolume'
-        :tailLeft='tailLeft'
-        :barPath='barPath'
-      /> -->
-      <path
+      <BarPath
+        v-for="({ minPrice, maxPrice, openingPrice, closingPrice },
+        i) in barArr"
+        :key="i"
+        :left="0"
+        :minPrice="minPrice"
+        :maxPrice="maxPrice"
+        :openingPrice="openingPrice"
+        :closingPrice="closingPrice"
+      />
+      <g
+        v-for="({ x1, y1, x2, y2, price }, i) in horizontalLinesCoords"
+        :key="i"
+      >
+        <line
+          :x1="x1"
+          :y1="y1"
+          :x2="x2"
+          :y2="y2"
+          stroke="rgba(0,0,0,.2)"
+          stroke-dasharray="2"
+          stroke-width="1"
+        ></line>
+        <text :x="x2 - 30" :y="y2">{{ price }}</text>
+      </g>
+      <!-- <path
         v-for="({ barPath, fillColor }, i) in barArr"
         :key="i"
         :d="barPath"
         :fill="fillColor"
         stroke="black"
         stroke-width="1"
-      ></path>
+      ></path> -->
     </svg>
   </div>
 </template>
 
 <script>
+import BarPath from "./BarPath";
 import Path from "@/js/classes/path";
 export default {
   name: "SvgGraphic",
-  components: {},
+  components: {
+    BarPath
+  },
   data() {
     return {
+      graphicHeight: 215,
+      graphicWidth: 400,
+      horizontalLinesValue: 8,
       tick: {
         step: 500,
         timeFrame: 2000,
@@ -41,21 +64,35 @@ export default {
       volume: 0,
       barConfig: {
         left: 0,
-        top: 146,
+        top: 150,
         width: 10
       },
       maxBarAmount: 0,
       barShift: 10,
-      barArr: []
+      barArr: [
+        {
+          minPrice: 4,
+          maxPrice: 19,
+          openingPrice: 8,
+          closingPrice: 13
+        },
+        {
+          minPrice: 5,
+          maxPrice: 15,
+          openingPrice: 8,
+          closingPrice: 13
+        }
+      ]
     };
   },
   created() {
-    this.initVolume();
+    // this.initVolume();
   },
   mounted() {
     this.calculateGraphicBarAmount();
   },
   computed: {
+    ...mapGetters("exchange", ["minutesFrameOffers"]),
     currentBar() {
       return this.barArr[this.barArr.length - 1] || {};
     },
@@ -66,7 +103,37 @@ export default {
       return this.maxBarAmount < this.barArr.length;
     },
     barShiftValue() {
-      return this.barConfig.width + this.barShift
+      return this.barConfig.width + this.barShift;
+    },
+    priceExtremumValues() {
+      return {
+        min: Math.min(...this.barArr.map(e => e.minPrice)),
+        max: Math.max(...this.barArr.map(e => e.maxPrice))
+      };
+    },
+    horizontalLinesCoords() {
+      //-2 для отрисовки первой и последней оси внутри области свг
+      const linesMargin =
+        (this.graphicHeight - 2) / (this.horizontalLinesValue - 1);
+      return new Array(this.horizontalLinesValue).fill(null).map((e, i) => {
+        const topMargin = i * linesMargin + 1;
+        return {
+          x1: 0,
+          y1: topMargin,
+          x2: this.graphicWidth,
+          y2: topMargin,
+          price: this.priceStepValues[i]
+        };
+      });
+    },
+    priceStepValues() {
+      const { min, max } = this.priceExtremumValues;
+      //подсчет шага с учетом добавления доп отметок к текущим экстремумам
+      const step = (max - min) / (this.horizontalLinesValue - 3);
+      const maxPrice = max + step;
+      return new Array(this.horizontalLinesValue).fill(null).map((e, i) => {
+        return maxPrice - step * i;
+      });
     }
   },
   methods: {
@@ -104,9 +171,7 @@ export default {
       this.barArr.push(new Path(leftShift, topShift, width));
     },
     recalculateBarsShift() {
-      this.barArr.forEach(bar =>
-        bar.recalculateBarShift(this.barShiftValue)
-      );
+      this.barArr.forEach(bar => bar.recalculateBarShift(this.barShiftValue));
     }
   }
 };
@@ -118,7 +183,7 @@ export default {
   width: 100%;
 }
 svg {
-  border: 1px solid;
+  margin-top: 15px;
 }
 svg path {
   transition: 0.1s;

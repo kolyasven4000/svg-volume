@@ -1,16 +1,27 @@
 <template>
   <div id="app">
     <SvgGraphic />
+    <Offers />
+    <TradersWrapper />
   </div>
 </template>
 
 <script>
 import SvgGraphic from "./components/SvgGraphic.vue";
-
+import Offers from "./components/Offers.vue";
+import TradersWrapper from "./components/TradersWrapper.vue";
 export default {
   name: "app",
   components: {
-    SvgGraphic
+    SvgGraphic,
+    Offers,
+    TradersWrapper
+  },
+  created() {
+    // this.createLimitRangeOffers();
+  },
+  methods: {
+    ...mapActions("exchange", ["createLimitRangeOffers"])
   }
 };
 </script>

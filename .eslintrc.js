@@ -11,6 +11,12 @@ module.exports = {
   parserOptions: {
     parser: "babel-eslint"
   },
+  globals: {
+    mapGetters: true,
+    mapMutations: true,
+    mapActions: true,
+    mapState: true
+  },
   overrides: [
     {
       files: [
