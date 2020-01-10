@@ -10,21 +10,22 @@ export default {
       default: 20
     },
     left: {
+      type: Number,
+      default: 0
+    },
+    min: {
       type: Number
     },
-    minPrice: {
+    max: {
       type: Number
     },
-    maxPrice: {
+    opening: {
       type: Number
     },
-    openingPrice: {
+    closing: {
       type: Number
     },
-    closingPrice: {
-      type: Number
-    },
-    currentPrice: {
+    shift: {
       type: Number
     }
   },
@@ -32,6 +33,27 @@ export default {
     return {};
   },
   computed: {
+    barPath() {
+      const { opening, closing, left, width } = this;
+      return `M ${left} ${opening}
+              L ${left} ${closing}
+              L ${left + width} ${closing}
+              L ${left + width} ${opening} Z ${this.barTopTailPath}`;
+      /*return `M ${left} ${top}
+                L ${left} ${this.barChangedPoint}
+                L ${left + this.width} ${this.barChangedPoint}
+                L ${left + this.width} ${top} Z ${this.barTopTailPath} ${
+        this.barBottomTailPath
+      }`;*/
+    },
+    barTopTailPath() {
+      const topTail = this.max;
+      const boundTail = Math.min(this.opening, this.closing);
+      return `M ${this.left} ${boundTail}
+                L ${this.left} ${topTail}
+                L ${this.left} ${topTail}
+                L ${this.left} ${boundTail} Z`;
+    },
     isPositiveBar() {
       return this.openingPrice <= this.closingPrice;
     },
@@ -46,7 +68,7 @@ export default {
     }
   },
   methods: {
-    barPath() {
+    /*barPath() {
       const { left, top } = this;
       return `M ${left} ${top}
                 L ${left} ${this.closingPrice}
@@ -63,7 +85,7 @@ export default {
       const topTail = this.maxPrice;
       const boundTail = Math.max(this.openingPrice, this.closingPrice);
       return this.getBarTailTemplate(boundTail, topTail);
-    },
+    },*/
     barBottomTailPath() {
       const botTail = this.minPrice;
       const boundTail = Math.min(this.openingPrice, this.closingPrice);

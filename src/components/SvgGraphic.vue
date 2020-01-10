@@ -7,14 +7,13 @@
       ref="graphic"
     >
       <BarPath
-        v-for="({ minPrice, maxPrice, openingPrice, closingPrice },
-        i) in barArr"
+        v-for="({ coords: { min, max, opening, closing, shift } }, i) in barArr"
         :key="i"
-        :left="0"
-        :minPrice="minPrice"
-        :maxPrice="maxPrice"
-        :openingPrice="openingPrice"
-        :closingPrice="closingPrice"
+        :shift="shift"
+        :min="min"
+        :max="max"
+        :opening="opening"
+        :closing="closing"
       />
       <g
         v-for="({ coords: { x1, x2, y }, price }, i) in horizontalLinesCoords"
@@ -71,16 +70,16 @@ export default {
       barShift: 10,
       barArr: [
         {
-          minPrice: 4,
-          maxPrice: 19,
-          openingPrice: 8,
-          closingPrice: 13
+          min: 4,
+          max: 19,
+          opening: 8,
+          closing: 13
         },
         {
-          minPrice: 5,
-          maxPrice: 15,
-          openingPrice: 8,
-          closingPrice: 13
+          min: 5,
+          max: 15,
+          opening: 8,
+          closing: 13
         }
       ]
     };
@@ -107,8 +106,8 @@ export default {
     },
     priceExtremumValues() {
       return {
-        min: Math.min(...this.barArr.map(e => e.minPrice)),
-        max: Math.max(...this.barArr.map(e => e.maxPrice))
+        min: Math.min(...this.barArr.map(e => e.min)),
+        max: Math.max(...this.barArr.map(e => e.max))
       };
     },
     horizontalLinesMargin() {
@@ -147,33 +146,29 @@ export default {
         return value <= prev.price && value > cur.price ? prev : cur;
       });
       const closestPriceDifference = closestPriceObj.price - value;
-      // если цена соответствует х осям графика, то возвращаем
+      // если цена соответствует х оси графика, то возвращаем Y координату оси
       if (closestPriceDifference === 0) {
-        return closestPriceObj.coords;
+        return closestPriceObj.coords.y;
       } else {
         const priceCoefficient = closestPriceDifference / this.priceStep;
-        const { y } = closestPriceObj;
-        return {
-          ...closestPriceObj.coords,
-          y: y + this.horizontalLinesMargin * priceCoefficient
-        };
+        const { y } = closestPriceObj.coords;
+        return y + this.horizontalLinesMargin * priceCoefficient;
       }
     },
     initBarArrCoords() {
-      //НУЖНО подсчитать координату на графике по значению цены
-      var x = this.barArr.map(e => {
-        const { minPrice, maxPrice, openingPrice, closingPrice } = e;
+      this.barArr = this.barArr.map((e, i) => {
+        const { min, max, opening, closing } = e;
         return {
           ...e,
           coords: {
-            minPrice: this.getClosestPriceObj(minPrice),
-            maxPrice: this.getClosestPriceObj(maxPrice),
-            openingPrice: this.getClosestPriceObj(openingPrice),
-            closingPrice: this.getClosestPriceObj(closingPrice)
+            min: this.getClosestPriceObj(min),
+            max: this.getClosestPriceObj(max),
+            opening: this.getClosestPriceObj(opening),
+            closing: this.getClosestPriceObj(closing),
+            shift: i * this.barShiftValue
           }
         };
       });
-      console.log(x);
     },
     initVolume() {
       this.createBar();
