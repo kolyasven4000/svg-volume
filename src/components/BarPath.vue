@@ -24,9 +24,6 @@ export default {
     },
     closing: {
       type: Number
-    },
-    shift: {
-      type: Number
     }
   },
   data() {
@@ -38,7 +35,9 @@ export default {
       return `M ${left} ${opening}
               L ${left} ${closing}
               L ${left + width} ${closing}
-              L ${left + width} ${opening} Z ${this.barTopTailPath}`;
+              L ${left + width} ${opening} Z ${this.barTopTailPath} ${
+        this.barBottomTailPath
+      }`;
       /*return `M ${left} ${top}
                 L ${left} ${this.barChangedPoint}
                 L ${left + this.width} ${this.barChangedPoint}
@@ -49,13 +48,24 @@ export default {
     barTopTailPath() {
       const topTail = this.max;
       const boundTail = Math.min(this.opening, this.closing);
-      return `M ${this.left} ${boundTail}
-                L ${this.left} ${topTail}
-                L ${this.left} ${topTail}
-                L ${this.left} ${boundTail} Z`;
+      return `M ${this.tailLeftCoord} ${boundTail}
+                L ${this.tailLeftCoord} ${topTail}
+                L ${this.tailLeftCoord} ${topTail}
+                L ${this.tailLeftCoord} ${boundTail} Z`;
+    },
+    barBottomTailPath() {
+      const botTail = this.min;
+      const boundTail = Math.max(this.opening, this.closing);
+      return `M ${this.tailLeftCoord} ${boundTail}
+                L ${this.tailLeftCoord} ${botTail}
+                L ${this.tailLeftCoord} ${botTail}
+                L ${this.tailLeftCoord} ${boundTail} Z`;
+    },
+    tailLeftCoord() {
+      return this.left + this.width / 2;
     },
     isPositiveBar() {
-      return this.openingPrice <= this.closingPrice;
+      return this.opening >= this.closing;
     },
     fillColor() {
       return this.isPositiveBar ? "green" : "red";
@@ -86,11 +96,6 @@ export default {
       const boundTail = Math.max(this.openingPrice, this.closingPrice);
       return this.getBarTailTemplate(boundTail, topTail);
     },*/
-    barBottomTailPath() {
-      const botTail = this.minPrice;
-      const boundTail = Math.min(this.openingPrice, this.closingPrice);
-      return this.getBarTailTemplate(boundTail, botTail);
-    }
   }
 };
 </script>

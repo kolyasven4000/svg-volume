@@ -6,15 +6,6 @@
       xmlns="http://www.w3.org/2000/svg"
       ref="graphic"
     >
-      <BarPath
-        v-for="({ coords: { min, max, opening, closing, shift } }, i) in barArr"
-        :key="i"
-        :shift="shift"
-        :min="min"
-        :max="max"
-        :opening="opening"
-        :closing="closing"
-      />
       <g
         v-for="({ coords: { x1, x2, y }, price }, i) in horizontalLinesCoords"
         :key="`xAxis${i}`"
@@ -30,14 +21,15 @@
         ></line>
         <text :x="x2 - 30" :y="y">{{ price }}</text>
       </g>
-      <!-- <path
-        v-for="({ barPath, fillColor }, i) in barArr"
+      <BarPath
+        v-for="({ coords: { min, max, opening, closing, left } }, i) in barArr"
         :key="i"
-        :d="barPath"
-        :fill="fillColor"
-        stroke="black"
-        stroke-width="1"
-      ></path> -->
+        :left="left"
+        :min="min"
+        :max="max"
+        :opening="opening"
+        :closing="closing"
+      />
     </svg>
   </div>
 </template>
@@ -67,7 +59,7 @@ export default {
         width: 10
       },
       maxBarAmount: 0,
-      barShift: 10,
+      barShift: 20,
       barArr: [
         {
           min: 4,
@@ -78,8 +70,8 @@ export default {
         {
           min: 5,
           max: 15,
-          opening: 8,
-          closing: 13
+          opening: 13,
+          closing: 6
         }
       ]
     };
@@ -128,7 +120,8 @@ export default {
     },
     priceStep() {
       const { min, max } = this.priceExtremumValues;
-      //подсчет шага с учетом добавления доп отметок к текущим экстремумам
+      // подсчет шага с учетом добавления доп отметок над текущими экстремумами
+      // чтобы свечи не прижимались к краям канваса графика
       return (max - min) / (this.horizontalLinesValue - 3);
     },
     priceStepValues() {
@@ -141,12 +134,20 @@ export default {
     }
   },
   methods: {
-    getClosestPriceObj(value) {
-      const closestPriceObj = this.horizontalLinesCoords.reduce((prev, cur) => {
-        return value <= prev.price && value > cur.price ? prev : cur;
-      });
-      const closestPriceDifference = closestPriceObj.price - value;
-      // если цена соответствует х оси графика, то возвращаем Y координату оси
+    getClosestPriceObj(barPrice) {
+      // Находим объект с осью, под которой будет стоят отметка цены
+      const closestPriceObj = this.horizontalLinesCoords.reduce(
+        (prevLineObj, curLineObj) => {
+          const { price: prevLinePrice } = prevLineObj;
+          const { price: curLinePrice } = curLineObj;
+          return barPrice <= prevLinePrice && barPrice > curLinePrice
+            ? prevLineObj
+            : curLineObj;
+        }
+      );
+      const closestPriceDifference = closestPriceObj.price - barPrice;
+      // если цена соответствует значению на X оси графика
+      // то возвращаем Y координату оси
       if (closestPriceDifference === 0) {
         return closestPriceObj.coords.y;
       } else {
@@ -165,7 +166,7 @@ export default {
             max: this.getClosestPriceObj(max),
             opening: this.getClosestPriceObj(opening),
             closing: this.getClosestPriceObj(closing),
-            shift: i * this.barShiftValue
+            left: i * this.barShiftValue
           }
         };
       });
