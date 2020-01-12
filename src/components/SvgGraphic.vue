@@ -1,11 +1,22 @@
 <template>
   <div class="graphic">
     <svg
-      :height="graphicHeight"
-      :width="graphicWidth"
+      :height="graphicConfig.height"
+      :width="graphicConfig.width"
       xmlns="http://www.w3.org/2000/svg"
       ref="graphic"
     >
+      <rect
+        :x="canvasBoundingConfig.x"
+        :y="canvasBoundingConfig.y"
+        :width="canvasBoundingConfig.width"
+        :height="canvasBoundingConfig.height"
+        strokeWidth="-1"
+        stroke="#e7eaef"
+        stroke-width="1"
+        fill="none"
+        zIndex="1"
+      ></rect>
       <g
         v-for="({ coords: { x1, x2, y }, price }, i) in horizontalLinesCoords"
         :key="`xAxis${i}`"
@@ -44,8 +55,6 @@ export default {
   },
   data() {
     return {
-      graphicHeight: 215,
-      graphicWidth: 400,
       horizontalLinesValue: 8,
       tick: {
         step: 500,
@@ -53,12 +62,23 @@ export default {
         filled: 0
       },
       volume: 0,
+      graphicConfig: {
+        height: 215,
+        width: 500
+      },
+      canvasAreaConfig: {
+        paddingRatio: {
+          left: 0.1,
+          top: 0.1,
+          right: 0.2,
+          bottom: 0.2
+        }
+      },
       barConfig: {
         left: 0,
         top: 150,
         width: 10
       },
-      maxBarAmount: 0,
       barShift: 20,
       barArr: [
         {
@@ -78,9 +98,6 @@ export default {
   },
   created() {
     this.initBarArrCoords();
-  },
-  mounted() {
-    this.calculateGraphicBarAmount();
   },
   computed: {
     ...mapGetters("exchange", ["minutesFrameOffers"]),
@@ -103,20 +120,35 @@ export default {
       };
     },
     horizontalLinesMargin() {
-      return this.graphicHeight / (this.horizontalLinesValue - 1);
+      return this.canvasBoundingConfig.height / (this.horizontalLinesValue - 1);
     },
     horizontalLinesCoords() {
       return new Array(this.horizontalLinesValue).fill(null).map((e, i) => {
         const topMargin = i * this.horizontalLinesMargin;
+        const { x, y } = this.canvasBoundingConfig;
         return {
           coords: {
-            x1: 0,
-            y: topMargin,
-            x2: this.graphicWidth
+            x1: x,
+            y: topMargin + y,
+            x2: this.canvasBoundingConfig.width + x
           },
           price: this.priceStepValues[i]
         };
       });
+    },
+    canvasBoundingConfig() {
+      const { left, top, right, bottom } = this.canvasAreaConfig.paddingRatio;
+      const { width, height } = this.graphicConfig;
+      const x = width * left;
+      const y = height * top;
+      const rectWidth = width - x - right * width;
+      const rectHeight = height - y - bottom * height;
+      return {
+        x,
+        y,
+        width: rectWidth,
+        height: rectHeight
+      };
     },
     priceStep() {
       const { min, max } = this.priceExtremumValues;
@@ -131,6 +163,9 @@ export default {
       return new Array(this.horizontalLinesValue).fill(null).map((e, i) => {
         return maxPrice - this.priceStep * i;
       });
+    },
+    maxBarAmount() {
+      return this.graphicConfig.width / this.barShiftValue;
     }
   },
   methods: {
@@ -166,7 +201,7 @@ export default {
             max: this.getClosestPriceObj(max),
             opening: this.getClosestPriceObj(opening),
             closing: this.getClosestPriceObj(closing),
-            left: i * this.barShiftValue
+            left: i * this.barShiftValue + this.canvasBoundingConfig.x
           }
         };
       });
@@ -178,10 +213,6 @@ export default {
         this.currentBar.setBarVolume(this.volume);
         this.checkTickFilled();
       }, this.tick.step);
-    },
-    calculateGraphicBarAmount() {
-      const graphicWidth = this.$refs.graphic.clientWidth;
-      this.maxBarAmount = graphicWidth / this.barShiftValue;
     },
     checkTickFilled() {
       if (this.tick.filled === this.tick.timeFrame) {
