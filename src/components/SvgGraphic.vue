@@ -18,7 +18,8 @@
         zIndex="1"
       ></rect>
       <g
-        v-for="({ coords: { x1, x2, y }, price }, i) in horizontalLinesCoords"
+        v-for="({ coords: { x1, x2, y, priceX, priceY }, price },
+        i) in horizontalLinesCoords"
         :key="`xAxis${i}`"
       >
         <line
@@ -30,7 +31,13 @@
           stroke-dasharray="2"
           stroke-width="1"
         ></line>
-        <text :x="x2 - 30" :y="y">{{ price }}</text>
+        <text
+          :x="priceX"
+          :y="priceY"
+          :font-size="graphicConfig.priceLabelsFontSize"
+        >
+          {{ price }}
+        </text>
       </g>
       <BarPath
         v-for="({ coords: { min, max, opening, closing, left } }, i) in barArr"
@@ -64,7 +71,12 @@ export default {
       volume: 0,
       graphicConfig: {
         height: 215,
-        width: 500
+        width: 500,
+        priceLabelsOffset: {
+          x: 5,
+          y: 5
+        },
+        priceLabelsFontSize: 16
       },
       canvasAreaConfig: {
         paddingRatio: {
@@ -125,12 +137,22 @@ export default {
     horizontalLinesCoords() {
       return new Array(this.horizontalLinesValue).fill(null).map((e, i) => {
         const topMargin = i * this.horizontalLinesMargin;
+        const {
+          x: priceOffsetX,
+          y: priceOffsetY
+        } = this.graphicConfig.priceLabelsOffset;
         const { x, y } = this.canvasBoundingConfig;
+        const lineXCoords = {
+          x1: x,
+          x2: this.canvasBoundingConfig.width + x
+        };
+        const lineYCoord = topMargin + y;
         return {
           coords: {
-            x1: x,
-            y: topMargin + y,
-            x2: this.canvasBoundingConfig.width + x
+            ...lineXCoords,
+            y: lineYCoord,
+            priceX: lineXCoords.x2 + priceOffsetX,
+            priceY: lineYCoord + priceOffsetY
           },
           price: this.priceStepValues[i]
         };
